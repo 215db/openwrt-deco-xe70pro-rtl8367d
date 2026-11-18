@@ -11,16 +11,16 @@
 #include <dt-bindings/leds/common.h>
 
 / {
-	model = "TP-Link XE70Pro v3";
-	compatible = "qcom,ipq5018-mp03.5-c1", "qcom,ipq5018";
+	model = "TP-Link Deco XE70 Pro (v3)";
+	compatible = "tplink,deco-xe70pro", "qcom,ipq5018-mp03.5-c1", "qcom,ipq5018";
 
 	aliases {
 		serial0 = &blsp1_uart1;
 		label-mac-device = &gmac1;
-		led-boot = &led_power;
-		led-failsafe = &led_power;
-		led-running = &led_power;
-		led-upgrade = &led_power;
+		led-boot = &led_blue;
+		led-failsafe = &led_red;
+		led-running = &led_blue;
+		led-upgrade = &led_red;
 	};
 
 	chosen {
@@ -35,45 +35,40 @@
 
 		button-reset {
 			label = "reset";
-			gpios = <&tlmm 22 GPIO_ACTIVE_LOW>; //was gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
+			gpios = <&tlmm 12 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RESTART>;
 		};
 
-		/* the case labels this "WPS/Wi-Fi"; stock treats it as a
-		 * wifi toggle (KEY_WLAN) - use rfkill, the OpenWrt idiom */
-		button-wifi {
-			label = "wifi";
-			gpios = <&tlmm 31 GPIO_ACTIVE_LOW>;
-			linux,code = <KEY_RFKILL>;
+		/* Vendor labels this as WPS/Wi-Fi; GPL DTS uses KEY_WPS_BUTTON on GPIO 38. */
+		button-wps {
+			label = "wps";
+			gpios = <&tlmm 38 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WPS_BUTTON>;
 		};
 	};
 
 	leds {
 		compatible = "gpio-leds";
-		pinctrl-0 = <&led_pins>;
-		pinctrl-names = "default";
 
 		/*
-		 * 
-		 * 
-		 * 
+		 * GPL (qcom-ipq5018-mp03.5-c1): single multi-color indicator with
+		 * red=GPIO22, green=GPIO38, blue=GPIO13 (all active low).
+		 * GPIO38 is also used by the WPS/Wi-Fi button in the vendor DTS, so
+		 * the green channel is not exposed here to avoid a GPIO conflict.
 		 */
-		led_power: led-power {
-			color = <LED_COLOR_ID_GREEN>;
-			function = LED_FUNCTION_POWER;
-			gpios = <&tlmm 18 GPIO_ACTIVE_HIGH>;
+		led_red: led-red {
+			color = <LED_COLOR_ID_RED>;
+			function = LED_FUNCTION_STATUS;
+			gpios = <&tlmm 22 GPIO_ACTIVE_LOW>;
+		};
+
+		led_blue: led-blue {
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_STATUS;
+			gpios = <&tlmm 13 GPIO_ACTIVE_LOW>;
 		};
 	};
 
-	/* vendor "usb_enabled" GPIO - switches the USB port's VBUS rail */
-	reg_usb_vbus: regulator-usb-vbus {
-		compatible = "regulator-fixed";
-		regulator-name = "usb_vbus";
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-		gpios = <&tlmm 27 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-	};
 };
 
 &sleep_clk {
@@ -321,36 +316,18 @@
 	
 }; /* End mdio1 */
 
-&usbphy0 {
-	status = "okay";
-};
-
-&usbphy1 {
-	status = "okay";
-
-	vdd-supply = <&reg_usb_vbus>;
-};
-
-&usb {
-	status = "okay";
-
-	#address-cells = <1>;
-	#size-cells = <0>;
-	dr_mode = "host";
-
-	usb_port1: port@1 {
-		reg = <1>;
-		#trigger-source-cells = <0>;
-	};
-};
-
 /*
- * WiFi: IPQ5018 2.4 GHz + QCN6122/QCN6102 5 GHz, the 5 GHz radio on
- * userpd 3 (q6_wcss_pd3) with no boot-args - same layout as the
- * GL.iNet GL-B3000 - so the board-specific, unexposed QCN6122 reset
- * GPIO is not needed. Per-device pre-cal comes from 0:ART via the
- * 11-ath11k-caldata hotplug.
+ * WiFi (GPL qcom-ipq5018-mp03.5-c1, ap-mp03.5*): tri-band
+ *   - IPQ5018 2.4 GHz (q6_wcss_pd1)
+ *   - QCN6122 5 GHz   (q6_wcss_pd2 / wifi1@b00a040)
+ *   - QCN6122 6 GHz   (q6_wcss_pd3 / wifi2@b00b040)
+ * Pre-cal data in 0:ART at 0x1000/0x26800/0x4c000 (see caldata hotplug).
+ * Calibration variants/BDFs are board-specific and TBD.
  */
+&q6_region {
+	reg = <0x0 0x4b000000 0x0 0x4d00000>;
+};
+
 &q6v5_wcss {
 	status = "okay";
 };
@@ -360,47 +337,50 @@
 
 	qcom,rproc = <&q6_wcss_pd1>;
 	qcom,ath11k-fw-memory-mode = <1>;
-	qcom,calibration-variant = "TP-Link-Archer-AX55-v1";
 	qcom,bdf-addr = <0x4c400000>;
+	qcom,calibration-variant = "TP-Link-Deco-XE70-Pro";
 };
 
 &wifi1 {
 	status = "okay";
 
+	qcom,rproc = <&q6_wcss_pd2>;
+	qcom,userpd-subsys-name = "q6v5_wcss_userpd2";
+	qcom,ath11k-fw-memory-mode = <1>;
+	qcom,bdf-addr = <0x4d100000>;
+	qcom,m3-dump-addr = <0x4df00000>;
+	qcom,calibration-variant = "TP-Link-Deco-XE70-Pro";
+};
+
+&wifi2 {
+	status = "okay";
+
 	qcom,rproc = <&q6_wcss_pd3>;
 	qcom,userpd-subsys-name = "q6v5_wcss_userpd3";
 	qcom,ath11k-fw-memory-mode = <1>;
-	qcom,calibration-variant = "TP-Link-Archer-AX55-v1";
-	qcom,bdf-addr = <0x4d100000>;
-	qcom,m3-dump-addr = <0x4df00000>;
+	qcom,bdf-addr = <0x4e500000>;
+	qcom,m3-dump-addr = <0x4f200000>;
+	qcom,calibration-variant = "TP-Link-Deco-XE70-Pro";
 };
 
 &tlmm {
 	button_pins: button-state {
-		pins = "gpio25", "gpio31";
+		pins = "gpio12", "gpio38";
 		function = "gpio";
 		drive-strength = <8>;
 		bias-pull-up;
 	};
 
-	led_pins: led-state {
-		pins = "gpio10", "gpio11", "gpio13", "gpio18", "gpio22",
-		       "gpio38", "gpio39";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-disable;
-	};
-
 	mdio1_pins: mdio1-state {
 		mdc-pins {
-			pins = "gpio36";   // gpio30 or gpio31 ???
+			pins = "gpio36";
 			function = "mdc";
 			drive-strength = <8>;
 			bias-pull-up;
 		};
 
 		mdio-pins {
-			pins = "gpio37";   // gpio30 or gpio31 ???
+			pins = "gpio37";
 			function = "mdio";
 			drive-strength = <8>;
 			bias-pull-up;

@@ -554,9 +554,7 @@ define Device/tplink_deco-xe70pro
 	PAGESIZE := 2048
 	NAND_SIZE := 256m
 	DEVICE_DTS_CONFIG := config@mp03.5-c1
-	DEVICE_PACKAGES := ath11k-firmware-ipq5018-qcn6122 \
-		ipq-wifi-tplink_archer-ax55-v1 \
-		kmod-dsa-rtl8365mb \
-		kmod-usb-ledtrig-usbport
+	DEVICE_PACKAGES := kmod-ath11k-ahb ath11k-firmware-ipq5018-qcn6122 \
+		kmod-dsa-rtl8365mb
 endef
 TARGET_DEVICES += tplink_deco-xe70pro
