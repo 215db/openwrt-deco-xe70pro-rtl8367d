@@ -339,7 +339,7 @@
 	qcom,rproc = <&q6_wcss_pd1>;
 	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,bdf-addr = <0x4c400000>;
-	qcom,calibration-variant = "TP-Link-Deco-XE70-Pro";
+	qcom,calibration-variant = "TP-Link-Archer-AX55-v1";
 };
 
 &wifi1 {
@@ -350,7 +350,7 @@
 	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,bdf-addr = <0x4d100000>;
 	qcom,m3-dump-addr = <0x4df00000>;
-	qcom,calibration-variant = "TP-Link-Deco-XE70-Pro";
+	qcom,calibration-variant = "TP-Link-Archer-AX55-v1";
 };
 
 &wifi2 {
@@ -361,7 +361,7 @@
 	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,bdf-addr = <0x4e500000>;
 	qcom,m3-dump-addr = <0x4f200000>;
-	qcom,calibration-variant = "TP-Link-Deco-XE70-Pro";
+	qcom,calibration-variant = "TP-Link-Archer-AX55-v1";
 };
 
 &tlmm {
