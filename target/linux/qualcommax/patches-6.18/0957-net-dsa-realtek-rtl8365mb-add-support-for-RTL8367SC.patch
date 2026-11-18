@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: OpenWrt Community <openwrt-devel@lists.openwrt.org>
+Date: Sat, 10 Oct 2026 16:50:17 +0200
+Subject: [PATCH] net: dsa: realtek: rtl8365mb: add support for RTL8367SC
+
+Add the RTL8367SC (chip ID 0x6642, version 0x0050) to the chip table.
+It belongs to family D, whose handling was added in the preceding
+patches.
+
+---
+ drivers/net/dsa/realtek/rtl8365mb_main.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+--- a/drivers/net/dsa/realtek/rtl8365mb_main.c
++++ b/drivers/net/dsa/realtek/rtl8365mb_main.c
+@@ -940,6 +940,16 @@
+ 				PHY_INTF(RMII) | PHY_INTF(RGMII) },
+ 		},
+ 	},
++	{
++		.name = "RTL8367SC",
++		.chip_id = 0x6642,
++		.chip_ver = 0x0050,
++		.family_info = &rtl8365mb_family_d,
++		.extints = {
++			{ 6, 0, PHY_INTF(SGMII) | PHY_INTF(HSGMII) },
++			{ 7, 1, PHY_INTF(SGMII) | PHY_INTF(HSGMII) },
++		},
++	},
+ };
+ 
+ enum rtl8365mb_stp_state {
