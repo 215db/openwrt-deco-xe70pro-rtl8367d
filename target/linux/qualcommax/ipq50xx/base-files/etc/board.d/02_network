@@ -77,11 +77,22 @@ ipq50xx_setup_macs()
 		[ -n "$lan_mac" ] && ucidef_set_label_macaddr "$lan_mac"
 		;;
 	mercusys,mr80x-v2|\
-	tplink,archer-ax55-v1|\
-	tplink,deco-xe70pro)
+	tplink,archer-ax55-v1)
 		# factory MAC is 6 raw bytes in tp_data/default-mac, mounted
 		# read-only during preinit (see lib/preinit/09_mount_tp_data)
 		label_mac=$(get_mac_binary "/tmp/tp_data/default-mac" 0)
+		[ -n "$label_mac" ] || return
+		ucidef_set_interface_macaddr "lan" "$label_mac"
+		ucidef_set_interface_macaddr "wan" "$(macaddr_add "$label_mac" 1)"
+		ucidef_set_label_macaddr "$label_mac"
+		# gmac1 has no nvmem MAC source, so stmmac would randomise the
+		# DSA conduit's address on every boot - pin it to the label MAC
+		ucidef_set_network_device_mac "eth0" "$label_mac"
+		;;
+	tplink,deco-xe70pro)
+		# factory MAC is 6 raw bytes in factory_data/default-mac, mounted
+		# read-only during preinit (see lib/preinit/09_mount_factory_data)
+		label_mac=$(get_mac_binary "/tmp/factory_data/default-mac" 0)
 		[ -n "$label_mac" ] || return
 		ucidef_set_interface_macaddr "lan" "$label_mac"
 		ucidef_set_interface_macaddr "wan" "$(macaddr_add "$label_mac" 1)"

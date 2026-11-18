@@ -76,8 +76,8 @@ case "$FIRMWARE" in
 		;;
 	tplink,deco-xe70pro)
 		caldata_extract "0:ART" 0x1000 0x20000
-		# MAC/flags TBD (step 1b): label MAC expected in /tmp/tp_data/default-mac
-		label_mac=$(get_mac_binary "/tmp/tp_data/default-mac" 0 2>/dev/null)
+		label_mac=$(get_mac_binary "/tmp/factory_data/default-mac" 0)
+		[ -n "$label_mac" ] && ath11k_patch_mac $(macaddr_add $label_mac 2) 0
 		ath11k_set_macflag
 		;;
 	tplink,eap650-outdoor-v1)
@@ -177,7 +177,8 @@ case "$FIRMWARE" in
 		;;
 	tplink,deco-xe70pro)
 		caldata_extract "0:ART" 0x26800 0x20000
-		# MAC/flags TBD (step 1b)
+		label_mac=$(get_mac_binary "/tmp/factory_data/default-mac" 0)
+		[ -n "$label_mac" ] && ath11k_patch_mac $(macaddr_add $label_mac 3) 0
 		ath11k_set_macflag
 		;;
 	wallys,dr5018s)
@@ -212,7 +213,8 @@ case "$FIRMWARE" in
 		;;
 	tplink,deco-xe70pro)
 		caldata_extract "0:ART" 0x4C000 0x20000
-		# MAC/flags TBD (step 1b)
+		label_mac=$(get_mac_binary "/tmp/factory_data/default-mac" 0)
+		[ -n "$label_mac" ] && ath11k_patch_mac $(macaddr_add $label_mac 4) 0
 		ath11k_set_macflag
 		;;
 	zyxel,scr50axe)
