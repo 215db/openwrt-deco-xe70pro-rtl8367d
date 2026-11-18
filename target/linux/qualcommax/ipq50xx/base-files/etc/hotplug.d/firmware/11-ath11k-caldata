@@ -74,6 +74,12 @@ case "$FIRMWARE" in
 		ath11k_set_macflag
 		ath11k_remove_regdomain
 		;;
+	tplink,deco-xe70pro)
+		caldata_extract "0:ART" 0x1000 0x20000
+		# MAC/flags TBD (step 1b): label MAC expected in /tmp/tp_data/default-mac
+		label_mac=$(get_mac_binary "/tmp/tp_data/default-mac" 0 2>/dev/null)
+		ath11k_set_macflag
+		;;
 	tplink,eap650-outdoor-v1)
 		caldata_from_file "/tmp/factory_data/radio" 0 0x20000
 		label_mac=$(get_mac_binary /tmp/factory_data/default-mac 0)
@@ -169,6 +175,11 @@ case "$FIRMWARE" in
 		ath11k_patch_mac $(macaddr_add $label_mac 2) 0
 		ath11k_set_macflag
 		;;
+	tplink,deco-xe70pro)
+		caldata_extract "0:ART" 0x26800 0x20000
+		# MAC/flags TBD (step 1b)
+		ath11k_set_macflag
+		;;
 	wallys,dr5018s)
 		caldata_extract "0:ART" 0x26800 0x20000
 		ath11k_set_macflag
@@ -197,6 +208,11 @@ case "$FIRMWARE" in
 		;;
 	wallys,dr5018s)
 		caldata_extract "0:ART" 0x4c000 0x20000
+		ath11k_set_macflag
+		;;
+	tplink,deco-xe70pro)
+		caldata_extract "0:ART" 0x4C000 0x20000
+		# MAC/flags TBD (step 1b)
 		ath11k_set_macflag
 		;;
 	zyxel,scr50axe)
