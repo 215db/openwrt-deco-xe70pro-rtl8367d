@@ -242,6 +242,49 @@ platform_do_upgrade() {
 		remove_oem_ubi_volume ubi_rootfs
 		nand_do_upgrade "$1"
 		;;
+	tplink,deco-xe70pro)
+		# TP-Link A/B dual-boot: tp_boot_idx selects active slot
+		# (0 = rootfs/mtd11, 1 = rootfs_1/mtd12). Install to the inactive
+		# slot and point tp_boot_idx at it, keeping the current slot as
+		# fallback (no automatic rollback on boot failure).
+		local idx cur
+
+		if grep -sq 'ubi.mtd=rootfs_1' /proc/cmdline; then
+			cur=1
+		elif grep -sq 'ubi.mtd=rootfs' /proc/cmdline; then
+			cur=0
+		else
+			cur="$(fw_printenv -n tp_boot_idx 2>/dev/null)"
+			case "$cur" in
+			1) cur=1 ;;
+			*) cur=0 ;;
+			esac
+		fi
+
+		if [ -n "$UPGRADE_OPT_USE_CURR_PART" ]; then
+			idx="$cur"
+		elif [ "$cur" -eq 1 ]; then
+			idx=0
+		else
+			idx=1
+		fi
+
+		if [ "$idx" -eq 1 ]; then
+			CI_UBIPART="rootfs_1"
+		else
+			CI_UBIPART="rootfs"
+		fi
+
+		fw_setenv tp_boot_idx "$idx" || {
+			echo "failed to set tp_boot_idx $idx"
+			return 1
+		}
+
+		# Stock slot UBI contains kernel + ubi_rootfs volumes.
+		remove_oem_ubi_volume ubi_rootfs
+		remove_oem_ubi_volume kernel
+		nand_do_upgrade "$1"
+		;;
 	mercusys,mr80x-v2)
 		# A/B: write the inactive slot, then point tp_boot_idx at it.
 		# tp_boot_idx=0 boots "rootfs", 1 boots "rootfs_1". primaryboot

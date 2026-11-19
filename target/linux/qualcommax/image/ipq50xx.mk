@@ -556,5 +556,11 @@ define Device/tplink_deco-xe70pro
 	DEVICE_DTS_CONFIG := config@mp03.5-c1
 	DEVICE_PACKAGES := kmod-ath11k-ahb ath11k-firmware-ipq5018-qcn6122 \
 		kmod-dsa-rtl8365mb
+ifneq ($(CONFIG_TARGET_ROOTFS_INITRAMFS),)
+ifeq ($(IB),)
+	ARTIFACTS := initramfs-factory.ubi
+	ARTIFACT/initramfs-factory.ubi := append-image-stage initramfs-uImage.itb | ubinize-kernel
+endif
+endif
 endef
 TARGET_DEVICES += tplink_deco-xe70pro
