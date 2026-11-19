@@ -661,8 +661,6 @@ PA12PC_EN_S1=BIT(9)) for EXT1 SerDes mode configuration.
 +	if (dp && !dsa_port_conduit_is_operational(dp)) {
 +		mb->sds_interface = interface;
 +		mb->sds_deferred = true;
-+		dev_dbg(mb->priv->dev, "SerDes bring-up held until %s is up\n",
-+			dp->conduit->name);
 +		ret = 0;
 +		goto out_unlock;
 +	}
