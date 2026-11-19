@@ -343,6 +343,7 @@
 };
 
 &wifi1 {
+	/* Swap test: b00a040/pd2 as 6 GHz candidate (native cal 0x26800) */
 	status = "okay";
 
 	qcom,rproc = <&q6_wcss_pd2>;
@@ -350,11 +351,11 @@
 	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,bdf-addr = <0x4d100000>;
 	qcom,m3-dump-addr = <0x4df00000>;
-	/* QCN6122 5 GHz (GPL mp03.5-c1); BDF is best-effort */
-	qcom,calibration-variant = "TP-Link-Deco-XE70-Pro-5G";
+	qcom,calibration-variant = "TP-Link-Deco-XE70-Pro-6G";
 };
 
 &wifi2 {
+	/* Swap test: b00b040/pd3 as 5 GHz (native cal 0x4C000) - strong 5G scans observed */
 	status = "okay";
 
 	qcom,rproc = <&q6_wcss_pd3>;
@@ -362,8 +363,7 @@
 	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,bdf-addr = <0x4e500000>;
 	qcom,m3-dump-addr = <0x4f200000>;
-	/* QCN6122 6 GHz (GPL mp03.5-c1); BDF is best-effort */
-	qcom,calibration-variant = "TP-Link-Deco-XE70-Pro-6G";
+	qcom,calibration-variant = "TP-Link-Deco-XE70-Pro-5G";
 };
 
 &tlmm {

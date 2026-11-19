@@ -176,9 +176,10 @@ case "$FIRMWARE" in
 		ath11k_set_macflag
 		;;
 	tplink,deco-xe70pro)
+		# b00a040/pd2: native cal 0x26800; swap-test treats this radio as 6 GHz
 		caldata_extract "0:ART" 0x26800 0x20000
 		label_mac=$(get_mac_binary "/tmp/factory_data/default-mac" 0)
-		[ -n "$label_mac" ] && ath11k_patch_mac $(macaddr_add $label_mac 3) 0
+		[ -n "$label_mac" ] && ath11k_patch_mac $(macaddr_add $label_mac 4) 0
 		ath11k_set_macflag
 		;;
 	wallys,dr5018s)
@@ -212,9 +213,10 @@ case "$FIRMWARE" in
 		ath11k_set_macflag
 		;;
 	tplink,deco-xe70pro)
+		# b00b040/pd3: native cal 0x4C000; swap-test treats this radio as 5 GHz (strong scans)
 		caldata_extract "0:ART" 0x4C000 0x20000
 		label_mac=$(get_mac_binary "/tmp/factory_data/default-mac" 0)
-		[ -n "$label_mac" ] && ath11k_patch_mac $(macaddr_add $label_mac 4) 0
+		[ -n "$label_mac" ] && ath11k_patch_mac $(macaddr_add $label_mac 3) 0
 		ath11k_set_macflag
 		;;
 	zyxel,scr50axe)
