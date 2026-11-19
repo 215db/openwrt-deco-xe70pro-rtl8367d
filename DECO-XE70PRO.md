@@ -212,6 +212,73 @@ Additionally, the `ath11k-firmware-ipq5018-qcn6122` package (firmware `WLAN.HK.2
 - `target/linux/qualcommax/image/ipq50xx.mk`: device/image definitions (incl. initramfs-factory artifact).
 - `package/boot/uboot-tools/uboot-envtools/files/qualcommax_ipq50xx`: U-Boot env access for `0:APPSBLENV`.
 
+## Building an ipq-wifi board-data package (validation)
+
+For out-of-the-box OpenWrt support, device-specific Wi-Fi board data is typically shipped as an `ipq-wifi-<board>` package (from `package/firmware/ipq-wifi/`) that installs `board-2.bin` files under `/lib/firmware/ath11k/...` for the device’s radios/variants. The following process was **validated locally** (package built successfully) to document how to produce such an APK for `tplink_deco-xe70pro`. The package-definition changes were **not committed** and the board data used for validation was the locally prepared, OEM-derived/patched data (not redistributable) — see caveats below.
+
+### 1. Define the package
+
+In `package/firmware/ipq-wifi/Makefile`:
+
+- Add the board to `ALLWIFIBOARDS` (e.g. alongside other TP-Link Deco entries):
+  ```make
+  	tplink_deco-x80-5g \
+  	tplink_deco-xe70pro \
+  	tplink_eap225-wall-v2 \
+  ```
+- Register the package (matching position/name):
+  ```make
+  $(eval $(call generate-ipq-wifi-package,tplink_deco-xe70pro,TP-Link Deco XE70 Pro))
+  ```
+
+The `ipq-wifi` package installs `board-<devicename>.*` files from its build/source directory (`$(PKG_BUILD_DIR)`) based on filename suffix (see `ipq-wifi-install-one`): `.ipq5018` → `ath11k/IPQ5018/hw1.0/board-2.bin`, `.qcn6122` → `ath11k/QCN6122/hw1.0/board-2.bin`.
+
+### 2. Provide the board data files
+
+For a proper/upstreamable package, `board-tplink_deco-xe70pro.ipq5018` and `board-tplink_deco-xe70pro.qcn6122` (ath11k `QCA-ATH11K-BOARD` `board-2.bin` containers with the correct match names/variants) must be added to the ipq-wifi source fetched by the package (the `qca-wireless` repo / `PKG_SOURCE_*` tarball) and the package version/bump updated accordingly.
+
+For local validation in this tree (where the source is extracted to `build_dir/target-aarch64_cortex-a53_musl/ipq-wifi-<version>/`), copy/prepare the board files into that build directory with the expected names:
+
+```sh
+# from the OpenWrt build root (example: using locally prepared working BDFs)
+cp files/lib/firmware/ath11k/IPQ5018/hw1.0/board-2.bin \
+  build_dir/target-aarch64_cortex-a53_musl/ipq-wifi-2026.10.25~49ce14c0/board-tplink_deco-xe70pro.ipq5018
+cp files/lib/firmware/ath11k/QCN6122/hw1.0/board-2.bin \
+  build_dir/target-aarch64_cortex-a53_musl/ipq-wifi-2026.10.25~49ce14c0/board-tplink_deco-xe70pro.qcn6122
+```
+
+(The exact `ipq-wifi-<version>` directory name follows `PKG_SOURCE_DATE/PKG_SOURCE_VERSION` in `package/firmware/ipq-wifi/Makefile`.)
+
+### 3. Enable and build the package
+
+Enable the new package (e.g. append to `.config`) and build:
+
+```sh
+echo 'CONFIG_PACKAGE_ipq-wifi-tplink_deco-xe70pro=m' >> .config
+make package/firmware/ipq-wifi/clean
+make package/firmware/ipq-wifi/prepare
+# (re-)place board-tplink_deco-xe70pro.{ipq5018,qcn6122} into PKG_BUILD_DIR after prepare
+make package/firmware/ipq-wifi/compile -j1 V=sc
+```
+
+Notes: `clean` removes the extracted package build dir (so board files placed there must be restored after `prepare`), while `compile` installs the matching `board-*.{ipq5018,qcn6122}` files into the package’s `lib/firmware/ath11k/...` paths and produces the APK.
+
+### 4. Result (validated)
+
+A successful build produced:
+
+- `bin/targets/qualcommax/ipq50xx/packages/ipq-wifi-tplink_deco-xe70pro-2026.10.25~49ce14c0-r1.apk`
+- Package payload:
+  - `/lib/firmware/ath11k/IPQ5018/hw1.0/board-2.bin` (from `board-tplink_deco-xe70pro.ipq5018`)
+  - `/lib/firmware/ath11k/QCN6122/hw1.0/board-2.bin` (from `board-tplink_deco-xe70pro.qcn6122`)
+
+(Validation used the locally prepared, working board-2.bin files documented in “Wi-Fi board data (BDF) — detailed findings”: OEM-derived payloads packaged with the correct Deco XE70 Pro variant names, including the QCN6122 `0x45c`/checksum workaround.)
+
+### Caveats
+
+- **Redistribution/provenance:** the working board data for this device is OEM-derived (and QCN6122 is locally patched) and is not cleared for redistribution. An ipq-wifi package for upstream/OpenWrt must contain properly sourced, redistributable (and, for QCN6122, validated) board data. Do not ship unprovenanced blobs.
+- **Upstreaming:** add the board files to the ipq-wifi firmware source repository referenced by `package/firmware/ipq-wifi/Makefile`, bump `PKG_SOURCE_*`/hash accordingly, add the board/package entries, and have the device image select `ipq-wifi-tplink_deco-xe70pro`. Until such data is available, provide board data locally (e.g. via `files/`) as documented above.
+
 ## Contributing / feedback
 
 Testing, corrections (especially BDF/board data provenance for this model, 6 GHz behavior, and bootloader nuances), and improvements are welcome via issues/PRs on the repository. Please include device revision, serial logs, and exact images/commits used when reporting results.
