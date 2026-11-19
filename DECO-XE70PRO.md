@@ -176,6 +176,8 @@ Comparison (payload-level):
 
 No matching Deco XE70 Pro QCN6122 (or IPQ5018) board entry was identified in the distributed linux-firmware/ath11k board data examined in this build; the OEM Deco payloads are not interchangeable with the distributed AX55 v1 QCN6122 payload, and the OEM QCN6122 payloads required the targeted fix below to work with this firmware.
 
+Additionally, the `ath11k-firmware-ipq5018-qcn6122` package (firmware `WLAN.HK.2.7.0.1-01744-QCAHKSWPL_SILICONZ-1` in this build) provides only the radio firmware binaries (`q6_fw`/`m3_fw`, notices/flists) for IPQ5018 and QCN6122 and **no** `board-2.bin` (board data); board data must be supplied separately (e.g. via linux-firmware, ipq-wifi, or device-specific files).
+
 ### QCN6122 `0x45c` workaround (symptom, change, and result)
 
 **Symptom (OEM QCN6122 payloads `b60`/`bb0` used as-is, wrapped into `board-2.bin`):** firmware/remoteproc crash during QCN6122 bring-up with  
