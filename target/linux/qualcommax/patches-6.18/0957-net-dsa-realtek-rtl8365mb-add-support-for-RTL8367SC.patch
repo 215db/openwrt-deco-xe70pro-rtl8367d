@@ -13,7 +13,7 @@ patches.
 
 --- a/drivers/net/dsa/realtek/rtl8365mb_main.c
 +++ b/drivers/net/dsa/realtek/rtl8365mb_main.c
-@@ -940,6 +940,16 @@
+@@ -940,6 +940,16 @@ static const struct rtl8365mb_chip_info
  				PHY_INTF(RMII) | PHY_INTF(RGMII) },
  		},
  	},
