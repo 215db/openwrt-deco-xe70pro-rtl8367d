@@ -178,6 +178,16 @@ No matching Deco XE70 Pro QCN6122 (or IPQ5018) board entry was identified in the
 
 Additionally, the `ath11k-firmware-ipq5018-qcn6122` package (firmware `WLAN.HK.2.7.0.1-01744-QCAHKSWPL_SILICONZ-1` in this build) provides only the radio firmware binaries (`q6_fw`/`m3_fw`, notices/flists) for IPQ5018 and QCN6122 and **no** `board-2.bin` (board data); board data must be supplied separately (e.g. via linux-firmware, ipq-wifi, or device-specific files).
 
+### Checks of upstream/official firmware sources and snapshots (no matching board data found)
+
+A broader check of official/published sources also found no matching Deco XE70 Pro board entries:
+
+- **`quic/upstream-wifi-fw`** (GitHub, archived; points to Codelinaro): no `board`/BDF files anywhere in the tree; `ath11k-firmware/IPQ5018_QCN6122/...` contains only firmware binaries (`q6_fw*`, `m3_fw*`, notices/flists/mdts).
+- **`git.codelinaro.org/clo/ath-firmware/ath11k-firmware`**: provides `IPQ5018/hw1.0/board-2.bin` but only generic entries (`bus=ahb,qmi-chip-id=0,qmi-board-id=255|32|36|35`, no variants; no Deco/XE70/TP-Link match), and has **no `QCN6122` directory or QCN6122 `board-2.bin`** at all.
+- **Published snapshot package** `ath11k-firmware-ipq5018-qcn6122-2024.10.14~15f05012-r2` (`https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/base/`): contains only radio firmware binaries/notices for IPQ5018 and QCN6122 — **no `board-2.bin`**.
+
+As of these checks, compatible IPQ5018 (`variant=TP-Link-Deco-XE70-Pro`) and QCN6122 (`-5G`/`-6G`) board data for this device does not appear to be published in these upstream/official firmware distributions.
+
 ### QCN6122 `0x45c` workaround (symptom, change, and result)
 
 **Symptom (OEM QCN6122 payloads `b60`/`bb0` used as-is, wrapped into `board-2.bin`):** firmware/remoteproc crash during QCN6122 bring-up with  
@@ -198,9 +208,81 @@ Additionally, the `ath11k-firmware-ipq5018-qcn6122` package (firmware `WLAN.HK.2
 
 > **Note:** this is an empirically derived, minimal workaround validated for bring-up with the firmware above; the “correct” vendor/QCA BDF data for this board may differ. Treat it as a documented finding pending redistributable, authoritative board data.
 
+### Reproducing the working `board-2.bin` files (from OEM payloads)
+
+> Requires access to the OEM BDF payloads from the device’s stock firmware (not redistributed here). The procedure below reproduces the locally validated working board data; payload provenance/redistribution and validation of the QCN6122 fix remain separate concerns.
+
+**Inputs (raw OEM BDF payloads, 131072 bytes each, whole-blob 16-bit LE XOR `0xffff`):**
+- `IPQ5018/bdwlan_XE75Pro_US_v1.b24` (IPQ5018 2.4 GHz) — use unchanged
+- `qcn6122/bdwlan_XE75Pro_US_v1.b60` (QCN6122 5 GHz) — patch required
+- `qcn6122/bdwlan_XE75Pro_US_v1.bb0` (QCN6122 6 GHz) — patch required
+
+**1. Patch QCN6122 payloads (`b60`, `bb0`) — “Stage 1” workaround**
+
+For each payload (apply independently):
+1. Set `byte@0x45c` (offset 1116) from `0x03` to `0x00`.
+2. Restore checksum so the whole 131072-byte blob’s 16-bit little-endian XOR is `0xffff`: compute `xor16` over all 16-bit LE words, derive `correction = xor16 ^ 0xffff`, and XOR that correction into the 16-bit word at `0x1fffe` (offset 131070, the last word, in the trailing zero region).  
+   For `b60`/`bb0` this yields `byte@0x45c=0x00`, last word `0x0003`, `xor16=0xffff` (exactly 2 bytes changed vs OEM; see hashes in the workaround table above).
+
+(Example logic: `d[0x45c]=0x00; d[0x1fffe]^=(need & 0xff); d[0x1fffe+1]^=((need>>8)&0xff)` after computing `need`.)
+
+**2. Package with `ath11k-bdencoder`** (e.g. from [qca-swiss-army-knife](https://github.com/qca/qca-swiss-army-knife)) into `QCA-ATH11K-BOARD` `board-2.bin` containers with the device-correct match names. Example `board-2.json` mappings (data paths relative to the JSON file / working directory):
+
+`ath11k/IPQ5018/hw1.0/` (`b24` unchanged → e.g. `bdwlan.bin`):
+```json
+[
+  {
+    "board": [
+      {
+        "names": [
+          "bus=ahb,qmi-chip-id=0,qmi-board-id=255",
+          "bus=ahb,qmi-chip-id=0,qmi-board-id=255,variant=TP-Link-Deco-XE70-Pro"
+        ],
+        "data": "bdwlan.bin"
+      }
+    ],
+    "regdb": []
+  }
+]
+```
+
+`ath11k/QCN6122/hw1.0/` (`b60` patched → `bdwlan-5g.bin`, `bb0` patched → `bdwlan-6g.bin`):
+```json
+[
+  {
+    "board": [
+      {
+        "names": [
+          "bus=ahb,qmi-chip-id=0,qmi-board-id=255,variant=TP-Link-Deco-XE70-Pro-5G"
+        ],
+        "data": "bdwlan-5g.bin"
+      },
+      {
+        "names": [
+          "bus=ahb,qmi-chip-id=0,qmi-board-id=255,variant=TP-Link-Deco-XE70-Pro-6G",
+          "bus=ahb,qmi-chip-id=0,qmi-board-id=255"
+        ],
+        "data": "bdwlan-6g.bin"
+      }
+    ],
+    "regdb": []
+  }
+]
+```
+
+Create containers (run in the directory containing the JSON and payload files): `ath11k-bdencoder -c board-2.json -o board-2.bin`.
+
+**3. Install (local, gitignored in this repo)**
+
+Place the resulting files at:
+- `files/lib/firmware/ath11k/IPQ5018/hw1.0/board-2.bin`
+- `files/lib/firmware/ath11k/QCN6122/hw1.0/board-2.bin`
+
+so they are included in local builds/images.
+
 ### Packaging & operational notes
 
-- OEM `bdwlan*` files are raw BDF payloads; ath11k expects a `QCA-ATH11K-BOARD` `board-2.bin` container with matching `bus`/`qmi-*`/`variant` names (e.g. packaged via `ath11k-bdencoder`).
+- OEM `bdwlan*` files are raw BDF payloads; ath11k expects a `QCA-ATH11K-BOARD` `board-2.bin` container with matching `bus`/`qmi-*`/`variant` names (as above).
 - Because the working data is OEM-derived (and QCN6122 is locally patched), it is kept out of the repo; builds/images must include compatible, properly sourced `board-2.bin` files (e.g. via `files/`) for functional Wi-Fi. Upstreaming requires redistributable/provenant board data (and validation of the QCN6122 fix) — see “Contributing / feedback”.
 - Prefer a fixed non-DFS channel for 5 GHz if ACS selects DFS and triggers `-22`. The non-fatal ath11k regulatory `-22` messages noted above were observed even when radios were otherwise functional.
 
@@ -273,6 +355,8 @@ A successful build produced:
   - `/lib/firmware/ath11k/QCN6122/hw1.0/board-2.bin` (from `board-tplink_deco-xe70pro.qcn6122`)
 
 (Validation used the locally prepared, working board-2.bin files documented in “Wi-Fi board data (BDF) — detailed findings”: OEM-derived payloads packaged with the correct Deco XE70 Pro variant names, including the QCN6122 `0x45c`/checksum workaround.)
+
+A copy of this validation APK is published as a GitHub release asset for reference (with the same provenance caveats): [ipq-wifi-tplink_deco-xe70pro 2026.10.25~49ce14c0-r1 (validation)](https://github.com/215db/openwrt-deco-xe70pro-rtl8367d/releases/tag/ipq-wifi-tplink_deco-xe70pro-2026.10.25-49ce14c0-r1-validation).
 
 ### Caveats
 
